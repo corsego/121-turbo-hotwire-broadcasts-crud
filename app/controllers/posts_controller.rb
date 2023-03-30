@@ -25,6 +25,10 @@ class PostsController < ApplicationController
 
     respond_to do |format|
       if @post.save
+        Broadcasters::Posts::Created.new(@post).call
+
+        # update_posts_count
+        # Turbo::StreamsChannel.broadcast_append_to :posts_list, target: 'all-posts', partial: 'posts/post', locals: { post: @post }
         format.html { redirect_to post_url(@post), notice: "Post was successfully created." }
         format.json { render :show, status: :created, location: @post }
       else
@@ -38,6 +42,7 @@ class PostsController < ApplicationController
   def update
     respond_to do |format|
       if @post.update(post_params)
+        Turbo::StreamsChannel.broadcast_replace_to :posts_list, target: @post, partial: 'posts/post', locals: { post: @post }
         format.html { redirect_to post_url(@post), notice: "Post was successfully updated." }
         format.json { render :show, status: :ok, location: @post }
       else
@@ -50,7 +55,8 @@ class PostsController < ApplicationController
   # DELETE /posts/1 or /posts/1.json
   def destroy
     @post.destroy
-
+    update_posts_count
+    Turbo::StreamsChannel.broadcast_remove_to :posts_list, target: @post
     respond_to do |format|
       format.html { redirect_to posts_url, notice: "Post was successfully destroyed." }
       format.json { head :no_content }
@@ -66,5 +72,10 @@ class PostsController < ApplicationController
     # Only allow a list of trusted parameters through.
     def post_params
       params.require(:post).permit(:body)
+    end
+
+    def update_posts_count
+      # Turbo::StreamsChannel.broadcast_update_to :posts_list, target: 'posts_count', html: Post.count
+      Turbo::StreamsChannel.broadcast_update_to :posts_list, target: 'posts_count', partial: 'posts/count', locals: { count: Post.count }
     end
 end

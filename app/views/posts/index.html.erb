@@ -1,8 +1,15 @@
 <p style="color: green"><%= notice %></p>
 
-<h1>Posts</h1>
+<h1>
+  Posts:
+  <span id="posts_count">
+    <%= @posts.count %>
+  </span>
+</h1>
 
-<div id="posts">
+<%= turbo_stream_from :posts_list %>
+
+<div id="all-posts">
   <% @posts.each do |post| %>
     <%= render post %>
     <p>
